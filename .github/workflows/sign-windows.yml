@@ -1,0 +1,75 @@
+name: build-and-sign-windows
+
+# 构建未签名安装包 → 交 SignPath 签名 → 校验签名
+# 需要的仓库 Secret：SIGNPATH_API_TOKEN / SIGNPATH_ORG_ID / SIGNPATH_PROJECT_SLUG
+# 没配 Secret 时自动跳过签名步骤（只产出未签名包），避免 Release 触发红灯
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    env:
+      SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+      SIGNPATH_ORG_ID: ${{ secrets.SIGNPATH_ORG_ID }}
+      SIGNPATH_PROJECT_SLUG: ${{ secrets.SIGNPATH_PROJECT_SLUG }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Self-test
+        run: npm run smoke
+
+      - name: Build unsigned installer
+        run: npm run dist:win
+
+      - name: Upload unsigned artifact
+        id: unsigned
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-setup
+          path: dist/*.exe
+          if-no-files-found: error
+
+      - name: Submit signing request to SignPath
+        id: sign
+        if: env.SIGNPATH_API_TOKEN != ''
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ env.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ env.SIGNPATH_ORG_ID }}
+          project-slug: ${{ env.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: release-signing
+          artifact-configuration-slug: exe
+          github-artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: signed
+
+      - name: Verify Authenticode signature
+        if: env.SIGNPATH_API_TOKEN != ''
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem signed/*.exe
+          if (-not $files) { throw '没有拿到签名后的文件' }
+          foreach ($f in $files) {
+            $sig = Get-AuthenticodeSignature $f.FullName
+            Write-Host "$($f.Name) => $($sig.Status) / $($sig.SignerCertificate.Subject)"
+            if ($sig.Status -ne 'Valid') { throw "签名校验失败：$($f.Name)" }
+          }
+
+      - name: Upload signed installer
+        if: env.SIGNPATH_API_TOKEN != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-setup
+          path: signed/*.exe

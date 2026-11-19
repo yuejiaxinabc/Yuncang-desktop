@@ -1,0 +1,100 @@
+{
+  "name": "cloud-warehouse-desktop",
+  "productName": "云仓",
+  "version": "0.6.2",
+  "description": "云仓桌面端：首次填服务器地址与密钥，之后按密钥权限进行仓库作业",
+  "main": "src/main/main.js",
+  "author": "yuejiaxin",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "smoke": "node test/smoke.js",
+    "ui:check": "node test/ui-check.js",
+    "scroll:check": "node test/scroll-check.js",
+    "inbound:check": "node test/inbound-check.js",
+    "count:check": "node test/count-check.js",
+    "ent:check": "node test/ent-check.js",
+    "dist:win": "electron-builder --win --x64 --publish never",
+    "dist:mac": "electron-builder --mac --arm64 --x64 --publish never",
+    "update:check": "node test/update-check.js",
+    "make:manifest": "node scripts/make-manifest.js"
+  },
+  "build": {
+    "appId": "cn.yuejiaxin.cloudwarehouse.desktop",
+    "productName": "云仓",
+    "artifactName": "YunCang-Setup-${version}-${arch}.${ext}",
+    "files": [
+      "src/**/*",
+      "package.json",
+      "README.md"
+    ],
+    "icon": "build/icon.png",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "publisherName": "云仓",
+      "legalTrademarks": "云仓",
+      "verifyUpdateCodeSignature": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "云仓",
+      "uninstallDisplayName": "云仓",
+      "deleteAppDataOnUninstall": true,
+      "include": "build/installer.nsh",
+      "menuCategory": false
+    },
+    "mac": {
+      "category": "public.app-category.business",
+      "icon": "build/icon.icns",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "YunCang-${version}-${arch}.${ext}",
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
+      "identity": null,
+      "darkModeSupport": true
+    }
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yuejiaxinabc/cloud-warehouse-desktop.git"
+  },
+  "homepage": "https://yuejiaxinabc.github.io/cloudwarehouse-index/desktop.html"
+}
